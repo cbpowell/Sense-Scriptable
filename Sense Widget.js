@@ -7,8 +7,9 @@
 // Configuration
 const userEmail = "youremail@somewhere.com"
 const userPassword = "super-secret-password"
+// Allowable range options: HOUR, DAY, WEEK, MONTH, YEAR
 const range = "HOUR"
-const darkMode = true
+const darkMode = false
 
 // Setup
 const debug = false
@@ -169,6 +170,7 @@ async function createWidget(plotData) {
   }
   
   // Set padding to shift out of widget window
+  // Unfortunately a negative trailing padding doesn't (currently?) also extend beyond right edge too, so no way to draw all the way to right edge
   widget.setPadding(10, -leftInset, 0, 0)
   
   // Show app icon and title
@@ -186,16 +188,17 @@ async function createWidget(plotData) {
   
   // Show plot
   let usage = plotData.usage
-  let minValue = 0.0
-  let maxValue = Math.ceil(Math.max(...usage)/100)*100
   
   // Horizontal stack for axis labels and plot
   let plotHstack = widget.addStack()
-  plotHstack.setPadding(0, 0, 0, 0)
 
   let labelFont = Font.mediumSystemFont(16)
   
-  let xInset = 40
+  // Plot settings
+  let minValue = 0.0
+  let maxValue = Math.ceil(Math.max(...usage)/100)*100
+  let xInset = 25
+  let drawingScale = 2 // for development device, the screen scale is 3x, but using that here resulted in unexpected positioning. YMMV.
   
   let chart = new LineChart(620 + leftInset, 240, plotData.usage, minValue, maxValue, xInset).configure((ctx, path, openPath) => {
     // Setup
@@ -231,7 +234,7 @@ async function createWidget(plotData) {
     ctx.setTextColor(labelTextColor)
     
     // Add Y label
-    let labelMaxPoint = new Point((leftInset + 4) * 2, 3)
+    let labelMaxPoint = new Point((leftInset + 4) * drawingScale, 3)
     ctx.drawText(maxValue.toString() + "w", labelMaxPoint)
     // Add orange vertical ticker
     let vertTicker = new Path()
@@ -251,6 +254,8 @@ async function createWidget(plotData) {
       ctx.strokePath()
     }
   }).getImage();
+  
+  plotHstack.setPadding(0, 0, 0, 0)
   let image = plotHstack.addImage(chart)
  
 
@@ -282,13 +287,15 @@ async function createWidget(plotData) {
 }
 
 async function retrieveAuth() {
+  // Try to grab a previously-stored authorization token
   let fm = FileManager.iCloud()
   let settingsFilename = "SenseAuth.json"
   let file = fm.joinPath(fm.documentsDirectory(), settingsFilename)
-  // download if not local
+  // Download if not local
   fm.downloadFileFromiCloud(file)
   let authExists = fm.fileExists(file)
-  var authData = ""
+  
+  let authData
   if (!authExists) {
     // Login and generate auth data
     let loginReq = new Request(baseurl + "/authenticate")
@@ -304,7 +311,6 @@ async function retrieveAuth() {
     let authString = fm.readString(file)
     authData = JSON.parse(authString)
   }
-  //log("Auth Data:" + authData)
   
   // Get auth userID and token
   let authUserID = authData.user_id
