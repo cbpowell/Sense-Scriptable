@@ -35,6 +35,11 @@ Sense-Scriptable uses the unofficial Sense API to pull data using your account c
 
 - The API method used doesn't typically grab the _most_ up-to-date usage data. For example, when using an `HOUR` range the most recent ~15 minutes can be missing. Presumably that's because this data is filled in by the Websockets part of the API, which isn't supported in Scriptable. To account for this, an extra 15 minutes is requested when using the `HOUR` range. iOS doesn't update widgets all that frequently anyway!
 
+## Shortcuts
+Scriptable also lets a script export certain data when run from the iOS Shortcuts app. Sense-Scriptable exports the retreived, reduced plot data points, start time, and end time when run as part of a Shortcut. This helps with the data reduction - from experience, I can say that Shortcuts doesn't _love_ directly manipulating JSON with 3,000+ data points.
+
 ## Future Improvement Ideas
 1. Time-scheduled light/dark mode switching, as an alternative to switching in sync with the device.
 2. Improve credentials storage?
+3. Verify average of provided totals is the correct value to use.
+4. Add support for solar production - going to need some help here on what data the API provides!
