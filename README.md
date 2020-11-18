@@ -6,7 +6,7 @@ Display your Sense usage plot in a Scriptable Widget! (iOS 14+)
 ## Description
 Sense-Scriptable is a script for the [Scriptable app](https://scriptable.app) that generates a medium-sized widget for use on your iOS homescreen, and displays your energy usage as reported by Sense for the prior hour/day/week/month/year.
 
-Sense-Scriptable uses the unofficial Sense API to pull data using your account credentials, and will be updated automatically by iOS (when the widget is refreshed). Both a light mode and a dark mode style are provided, although unfortunately Scriptable/iOS doesn't support switching automatically at this time.
+Sense-Scriptable uses the unofficial Sense API to pull power usage data, and will be updated automatically by iOS (when the widget is refreshed). Both a light mode and a dark mode style are provided, although unfortunately Scriptable/iOS doesn't support switching automatically at this time.
 
 ## Setup and Configuration
 1. First, install the [Scriptable app](https://scriptable.app) if you don't have it already!
