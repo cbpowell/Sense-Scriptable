@@ -28,11 +28,10 @@ Sense-Scriptable uses the unofficial Sense API to pull data using your account c
    
     <img src="../assets/config_widget.jpeg" width="350">
 11. Complete!
+12. Be sure to note the instructions at the beginning of the script, to clear your plaintext username and password from the script (see note below).
 
 ## Notes
-- Sense-Scriptable will save a file called "SenseAuth.json" in the Scriptable folder of your iCloud Drive. This saves your authentication token to avoid hammering the Sense authentication server every time the widget refreshes. This file does have your unencrypted API token, so make sure your iCloud Drive is secure (presumably it is, by default). That said...
-- Currently, **your Sense username and password will be stored in plaintext** in the Scriptable app, and your iCloud Drive. Consider that security implication accordingly! Scriptable does support set/get to the iOS Keychain, so I'll work on implementing that (noting that any Scriptable app could still retreive from the Keychain).
-
+- Your Sense login info will be stored in the iOS Keychain via Scriptable, so no info is directly stored as plaintext. Be sure to clear the plaintext variables after you initial successful login. However note that there isn't any 'authentication' to get into Scriptable, to prevent someone from using the right script to pull those details out!
 - The API method used doesn't typically grab the _most_ up-to-date usage data. For example, when using an `HOUR` range the most recent ~15 minutes can be missing. Presumably that's because this data is filled in by the Websockets part of the API, which isn't supported in Scriptable. To account for this, an extra 15 minutes is requested when using the `HOUR` range. iOS doesn't update widgets all that frequently anyway!
 
 ## Shortcuts
