@@ -38,7 +38,6 @@ Sense-Scriptable uses the unofficial Sense API to pull data using your account c
 Scriptable also lets a script export certain data when run from the iOS Shortcuts app. Sense-Scriptable exports the retreived, reduced plot data points, start time, and end time when run as part of a Shortcut. This helps with the data reduction - from experience, I can say that Shortcuts doesn't _love_ directly manipulating JSON with 3,000+ data points.
 
 ## Future Improvement Ideas
-1. Improve credentials storage.
 1. Time-scheduled light/dark mode switching, as an alternative to switching in sync with the device.
-3. Verify average of provided totals is the correct value to use.
-4. Add support for solar production - going to need some help here on what data the API provides!
+2. Verify average of provided totals is the correct value to use.
+3. Add support for solar production - going to need some help here on what data the API provides!
