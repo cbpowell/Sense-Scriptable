@@ -1,15 +1,24 @@
-// Developed by Charles Powell
+// Developed by Charles Powell, Copyright 2020
 // https://github.com/cbpowell
 
 // Configuration
+
+// SET THESE LOGIN VARIABLES TO AN EMPTY STRING AFTER A SUCCESSFULL FIRST RUN!
+// They will be stored in the Keychain after a successful connection, so you don't need to keep them in plaintext here. If you need to change the values: put in the updated values, run the script manually once, confirm a successful data pull, and then set back to an empty string (two quotes, i.e. "")
 const userEmail = "youremail@somewhere.com"
 const userPassword = "super-secret-password"
+
 // Allowable range options: HOUR, DAY, WEEK, MONTH, YEAR
 const range = "HOUR"
 const darkMode = false
 
-// Setup
+// Other Setup
 const debug = false
+
+// Authorization storage
+const authKey = "SenseAuth"
+const authKeyUser = authKey + "User"
+const authKeyPass = authKey + "Pass"
 
 // Colors
 let senseOrange
@@ -284,31 +293,51 @@ async function createWidget(plotData) {
 }
 
 async function retrieveAuth() {
-  // Try to grab a previously-stored authorization token
-  let fm = FileManager.iCloud()
-  let settingsFilename = "SenseAuth.json"
-  let file = fm.joinPath(fm.documentsDirectory(), settingsFilename)
-  // Download if not local
-  fm.downloadFileFromiCloud(file)
-  let authExists = fm.fileExists(file)
+  // Clear Keychain data if login info is provided
+  let userLength = userEmail.length
+  let passLength = userPassword.length
+  if (userLength + passLength > 0) {
+    // Refresh Keychain
+    if (Keychain.contains(authKey)) {
+      Keychain.remove(authKey)
+    }
+    if (Keychain.contains(authKeyUser)) {
+      Keychain.remove(authKeyUser)
+    }
+    if (Keychain.contains(authKeyPass)) {
+      Keychain.remove(authKeyPass)
+    }
+  }
   
+  // Try to grab a previously-stored authorization
   let authData
-  if (!authExists) {
+  if (!Keychain.contains(authKey)) {
+    // Check for login and pass in Keychain
+    if (!Keychain.contains(authKeyUser) || !Keychain.contains(authKeyPass)) {
+      Keychain.set(authKeyUser, userEmail)
+      Keychain.set(authKeyPass, userPassword)
+    }
+    
     // Login and generate auth data
     let loginReq = new Request(baseurl + "/authenticate")
     loginReq.method = "POST"
     loginReq.headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    loginReq.body = "email=" + encodeURL(userEmail) + "&password=" + encodeURL(userPassword)
-    let loginResp = await loginReq.loadJSON()
-	fm.writeString(file, JSON.stringify(loginResp))
-	console.log("Saved auth data!")
-    authData = loginResp
+    loginReq.body = "email=" + encodeURL(Keychain.get(authKeyUser)) + "&password=" + encodeURL(Keychain.get(authKeyPass))
+    authData = await loginReq.loadJSON()
+	if (authData.status == "error") {
+      // Login error!
+      logError("Login error: " + authData.error_reason)
+      Script.complete()
+      return
+    } else {
+      log("Login success, storing auth data")
+      Keychain.set(authKey, JSON.stringify(authData))
+    }
   } else {
-    // get from disk
-    let authString = fm.readString(file)
+    // get from Keychain
+    let authString = Keychain.get(authKey)
     authData = JSON.parse(authString)
   }
-  
   // Get auth userID and token
   let authUserID = authData.user_id
   let authToken = authData.access_token
@@ -335,8 +364,9 @@ async function retrieveData(auth, range) {
   switch(range) {
     case "HOUR":
       // One hour ago, seconds scale
-      timeAgoMs = 60*60*1000
-      frames = 60*60
+      // However, request prior 75 minutes to accoint for "unpopulated" data
+      timeAgoMs = 60*75*1000
+      frames = 60*75
       granularity = timeIntervals.SECOND
       break
     case "DAY":
