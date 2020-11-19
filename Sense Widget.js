@@ -1,14 +1,25 @@
 // Developed by Charles Powell, Copyright 2020
 // https://github.com/cbpowell
 
+// Developed by Charles Powell
+// https://github.com/cbpowell
+
 // Configuration
 
-// SET THESE LOGIN VARIABLES TO AN EMPTY STRING AFTER A SUCCESSFULL FIRST RUN!
-// They will be stored in the Keychain after a successful connection, so you don't need to keep them in plaintext here. If you need to change the values: put in the updated values, run the script manually once, confirm a successful data pull, and then set back to an empty string (two quotes, i.e. "")
-const userEmail = "youremail@somewhere.com"
-const userPassword = "super-secret-password"
+// *** SET CREDENTIAL VARIABLES TO AN EMPTY STRING
+// AFTER A SUCCESSFULL FIRST RUN! ***
+// They will be stored in the Keychain after a
+// successful connection, so you don't need to keep
+// them in plaintext here.
+// If you need to change the values, put in the
+// updated values, run the script manually once,
+// confirm a successful data pull, and then set back
+// to an empty string (two quotes, i.e. "")
+const userEmail = ""
+const userPassword = ""
 
-// Allowable range options: HOUR, DAY, WEEK, MONTH, YEAR
+// Allowable range options:
+// HOUR, DAY, WEEK, MONTH, YEAR
 const range = "HOUR"
 const darkMode = false
 
@@ -103,29 +114,29 @@ class LineChart {
     }
     let difference = maxValue - minValue
     let count = this.values.length
-    let step = (this.ctx.size.width - this.xInset) / (count - 1);
+    let step = (this.ctx.size.width - this.xInset) / (count - 1)
     let points = this.values.map((current, index, all) => {
-        let x = step*index;
-        let y = this.ctx.size.height * (1 - minCtxHeight) - (current - minValue) / difference * this.ctx.size.height * maxCtxHeight;
-        return new Point(x, y);
-    });
-    return this._getSmoothPath(points);
+        let x = step*index
+        let y = this.ctx.size.height * (1 - minCtxHeight) - (current - minValue) / difference * this.ctx.size.height * maxCtxHeight
+        return new Point(x, y)
+    })
+    return this._getSmoothPath(points)
   }
       
   _getSmoothPath(points) {
     let path = new Path()
     let openPath = new Path()
-    path.move(new Point(0, this.ctx.size.height));
-    openPath.move(new Point(0, this.ctx.size.height));
-    path.addLine(points[0]);
+    path.move(new Point(0, this.ctx.size.height))
+    openPath.move(new Point(0, this.ctx.size.height))
+    path.addLine(points[0])
     openPath.addLine(points[0])
     for(let i = 0; i < points.length-1; i++) {
-      let xAvg = (points[i].x + points[i+1].x) / 2;
-      let yAvg = (points[i].y + points[i+1].y) / 2;
-      let avg = new Point(xAvg, yAvg);
-      let cp1 = new Point((xAvg + points[i].x) / 2, points[i].y);
-      let next = new Point(points[i+1].x, points[i+1].y);
-      let cp2 = new Point((xAvg + points[i+1].x) / 2, points[i+1].y);
+      let xAvg = (points[i].x + points[i+1].x) / 2
+      let yAvg = (points[i].y + points[i+1].y) / 2
+      let avg = new Point(xAvg, yAvg)
+      let cp1 = new Point((xAvg + points[i].x) / 2, points[i].y)
+      let next = new Point(points[i+1].x, points[i+1].y)
+      let cp2 = new Point((xAvg + points[i+1].x) / 2, points[i+1].y)
       path.addQuadCurve(avg, cp1)
       openPath.addQuadCurve(avg, cp1)
       path.addQuadCurve(next, cp2)
@@ -138,14 +149,14 @@ class LineChart {
   }
   
   configure(fn) {
-    let paths = this._calculatePath();
+    let paths = this._calculatePath()
     if(fn) {
-      fn(this.ctx, paths[0], paths[1]);
+      fn(this.ctx, paths[0], paths[1])
     } else {
-      this.ctx.addPath(paths[0]);
-      this.ctx.fillPath(paths[0]);
+      this.ctx.addPath(paths[0])
+      this.ctx.fillPath(paths[0])
     }
-    return this.ctx;
+    return this.ctx
   }
 
 }
@@ -209,12 +220,12 @@ async function createWidget(plotData) {
   let chart = new LineChart(620 + leftInset, 240, plotData.usage, minValue, maxValue, xInset).configure((ctx, path, openPath) => {
     // Setup
     ctx.respectScreenScale = true
-    ctx.opaque = false;
+    ctx.opaque = false
     
     // Add grey horizontal Y axis markers
     let midLine = new Path()
     let midPoint = new Point(0.0, ctx.size.height * ((maxCtxHeight - minCtxHeight)/2 + minCtxHeight))
-    midLine.move(midPoint);
+    midLine.move(midPoint)
     midLine.addLine(new Point(ctx.size.width, midPoint.y))
     let maxLine = new Path()
     let maxPoint = new Point(0, ctx.size.height * (1.0 - maxCtxHeight))
@@ -244,7 +255,7 @@ async function createWidget(plotData) {
     ctx.drawText(maxValue.toString() + "w", labelMaxPoint)
     // Add orange vertical ticker
     let vertTicker = new Path()
-    vertTicker.move(new Point(ctx.size.width - xInset, ctx.size.height));
+    vertTicker.move(new Point(ctx.size.width - xInset, ctx.size.height))
     vertTicker.addLine(new Point(ctx.size.width - xInset, 0))
     ctx.addPath(vertTicker)
     ctx.setStrokeColor(new Color(senseOrange.hex, 0.1))
@@ -259,7 +270,7 @@ async function createWidget(plotData) {
       ctx.addPath(boundingPath)
       ctx.strokePath()
     }
-  }).getImage();
+  }).getImage()
   
   plotHstack.setPadding(0, 0, 0, 0)
   let image = plotHstack.addImage(chart)
@@ -364,7 +375,7 @@ async function retrieveData(auth, range) {
   switch(range) {
     case "HOUR":
       // One hour ago, seconds scale
-      // However, request prior 75 minutes to accoint for "unpopulated" data
+      // However, request prior 75 minutes to account for "unpopulated" data
       timeAgoMs = 60*75*1000
       frames = 60*75
       granularity = timeIntervals.SECOND
@@ -438,11 +449,11 @@ function encodeURL(url) {
 		let hex = match.charCodeAt(0).toString(16)
 		if (hex.length % 2 !== 0) hex = "0" + hex
 		return hex.replace(/[\S\s]{2}/g, "%$&")
-	});
+	})
 }
 
 function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase()
 }
 
 
