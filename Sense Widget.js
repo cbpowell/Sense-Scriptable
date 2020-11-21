@@ -4,32 +4,16 @@
 // Developed by Charles Powell
 // https://github.com/cbpowell
 
+
 // Configuration
-
-// *** SET CREDENTIAL VARIABLES TO AN EMPTY STRING
-// AFTER A SUCCESSFULL FIRST RUN! ***
-// They will be stored in the Keychain after a
-// successful connection, so you don't need to keep
-// them in plaintext here.
-// If you need to change the values, put in the
-// updated values, run the script manually once,
-// confirm a successful data pull, and then set back
-// to an empty string (two quotes, i.e. "")
-const userEmail = ""
-const userPassword = ""
-
 // Allowable range options:
 // HOUR, DAY, WEEK, MONTH, YEAR
 const range = "HOUR"
 const darkMode = false
 
+
 // Other Setup
 const debug = false
-
-// Authorization storage
-const authKey = "SenseAuth"
-const authKeyUser = authKey + "User"
-const authKeyPass = authKey + "Pass"
 
 // Colors
 let senseOrange
@@ -76,6 +60,7 @@ let maxCtxHeight = 1.0
 let minCtxHeight = 0.0
 
 // Other
+const authKey = "SenseAuth"
 const baseurl = "https://api.sense.com/apiservice/api/v1"
 const validRanges = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']
 const timeIntervals = {
@@ -162,9 +147,20 @@ class LineChart {
 }
 
 // Create widget content
+let widget
 let auth = await retrieveAuth()
-let plotData = await retrieveData(auth, range)
-let widget = await createWidget(plotData)
+if (auth == null) {
+  // Auth error, show error
+  logError("Unable to complete authentication")
+  let errorMsg = "Unable to authenticate, please run widget from Scriptable app to log in!"
+  let errorUrl = "scriptable:///open/" + encodeURI(Script.name())
+  widget = await createErrorWidget(errorMsg, errorUrl)
+} else {
+  let plotData = await retrieveData(auth, range)
+  widget = await createWidget(plotData)
+}
+
+// Present widget
 if (config.runsInWidget) {
   // The script runs inside a widget, so we pass our instance of ListWidget to be shown inside the widget on the Home Screen.
   Script.setWidget(widget)
@@ -173,6 +169,23 @@ if (config.runsInWidget) {
   widget.presentMedium()
 }
 Script.complete()
+
+async function createErrorWidget(errorMessage, errorURL) {
+  let widget = new ListWidget()
+  log(errorURL)
+  widget.url = errorURL
+  let header = widget.addText("Error!")
+  widget.addSpacer(20)
+  let message = widget.addText(errorMessage)
+  
+  // Styling
+  widget.backgroundColor = Color.black()
+  header.textColor = Color.red()
+  header.font = Font.heavySystemFont(20)
+  message.font = Font.mediumSystemFont(12)
+  
+  return widget
+}
 
 async function createWidget(plotData) {
   let appIcon = await loadAppIcon()
@@ -304,30 +317,41 @@ async function createWidget(plotData) {
 }
 
 async function retrieveAuth() {
-  // Clear Keychain data if login info is provided
-  let userLength = userEmail.length
-  let passLength = userPassword.length
-  if (userLength + passLength > 0) {
-    // Refresh Keychain
-    if (Keychain.contains(authKey)) {
-      Keychain.remove(authKey)
-    }
-    if (Keychain.contains(authKeyUser)) {
-      Keychain.remove(authKeyUser)
-    }
-    if (Keychain.contains(authKeyPass)) {
-      Keychain.remove(authKeyPass)
-    }
+  // Clear Keychain data if login info has been previously provided in older script versions
+  if (Keychain.contains("SenseAuthUser")) {
+    Keychain.remove("SenseAuthUser")
+  }
+  if (Keychain.contains("SenseAuthPass")) {
+    Keychain.remove("SenseAuthPass")
   }
   
   // Try to grab a previously-stored authorization
   let authData
-  if (!Keychain.contains(authKey)) {
-    // Check for login and pass in Keychain
-    if (!Keychain.contains(authKeyUser) || !Keychain.contains(authKeyPass)) {
-      Keychain.set(authKeyUser, userEmail)
-      Keychain.set(authKeyPass, userPassword)
+  if (!Keychain.contains(authKey) || debug) {
+    // Need to log used in and grab auth token
+    if (!config.runsInApp) {
+      // Need to be in app to present popup,
+      // return null and error
+      logError("Login requires being in-app")
+      return null
     }
+    
+    // Present login prompt
+    let loginAlert = new Alert()
+    loginAlert.title = "Sense Login"
+    loginAlert.message = "Please log in with your Sense credentials to connect to the Sense API.\n\nYour email and password will not be saved by this script!"
+    loginAlert.addTextField("Email")
+    loginAlert.addSecureTextField("Password")
+    loginAlert.addCancelAction("Cancel")
+    loginAlert.addAction("Submit")
+    let loginResponse = await loginAlert.presentAlert()
+    if (loginResponse == -1) {
+      // User cancelled login
+      log("User cancelled login")
+      return null
+    }
+    let userEmail = loginAlert.textFieldValue(0)
+    let userPassword = loginAlert.textFieldValue(1)
     
     // Login and generate auth data
     let loginReq = new Request(baseurl + "/authenticate")
@@ -338,8 +362,11 @@ async function retrieveAuth() {
 	if (authData.status == "error") {
       // Login error!
       logError("Login error: " + authData.error_reason)
-      Script.complete()
-      return
+      let errorAlert = new Alert()
+      errorAlert.title = "Sense Login Error"
+      errorAlert.message = "Authentication with Sense API failed. \n\n Error: " + authData.error_reason
+      await errorAlert.presentAlert()
+      return null
     } else {
       log("Login success, storing auth data")
       Keychain.set(authKey, JSON.stringify(authData))
@@ -416,10 +443,16 @@ async function retrieveData(auth, range) {
   let dataReq = new Request(endpointURL)
   let bearer =  "bearer " + auth.token
   dataReq.headers = {"Authorization": bearer}
-//   log(dataReq)
   let dataRes = await dataReq.loadJSON()
-//   log(dataRes)
-
+  if (dataReq.response.statusCode == 401) {
+    logError("Token rejected, clearing stored value")
+    if (Keychain.contains(authKey)) {
+      Keychain.remove(authKey)
+    }
+    return null
+  }
+  
+  
   // Reduce data
   let totals = dataRes.totals
   log("Retrieved " + totals.length + " data points")
