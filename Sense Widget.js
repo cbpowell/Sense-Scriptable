@@ -149,22 +149,26 @@ class LineChart {
     }
     return this.ctx
   }
-
 }
 
 // Create widget content
 let widget
-let auth = await retrieveAuth()
-if (auth == null) {
-  // Auth error, show error
-  logError("Unable to complete authentication")
-  let errorMsg = "Unable to authenticate, please run widget from Scriptable app to log in!"
-  let errorUrl = "scriptable:///open/" + encodeURI(Script.name())
-  widget = await createErrorWidget(errorMsg, errorUrl)
-} else {
-  // Retrieve and plot data
-  let plotData = await retrieveData(auth, range)
-  widget = await createWidget(plotData)
+let auth
+try {
+  // Authenticate if required
+  auth = await retrieveAuth()
+  // Plot if auth was successful
+  try {
+    // Retrieve and plot data
+    let plotData = await retrieveData(auth, range)
+    // Create plot widget
+    widget = await createWidget(plotData)
+  } catch(err) {
+    // Caught error during plot, show error widget
+    widget = await createErrorWidget("No plot data retrieved. Recommend running from app, some debugging may be required.\n\nError: " + err.message, scriptURL)
+  }
+} catch(err) {
+  widget = await createErrorWidget("Unable to authenticate with Sense: " + err.message, scriptURL)
 }
 
 // Present widget
@@ -339,8 +343,7 @@ async function retrieveAuth() {
     if (!config.runsInApp) {
       // Need to be in app to present popup,
       // return null and error
-      logError("Login requires being in-app")
-      return null
+      throw new Error("Login required, run script from app")
     }
     
     // Present login prompt
@@ -354,8 +357,7 @@ async function retrieveAuth() {
     let loginResponse = await loginAlert.presentAlert()
     if (loginResponse == -1) {
       // User cancelled login
-      log("User cancelled login")
-      return null
+      throw new Error("User cancelled login")
     }
     let userEmail = loginAlert.textFieldValue(0)
     let userPassword = loginAlert.textFieldValue(1)
@@ -402,8 +404,7 @@ async function retrieveAuth() {
 async function retrieveData(auth, range) {
   // Check scale
   if (!validRanges.includes(range)) {
-    console.error("Invalid scale used: " + range)
-    return null
+    throw new Error("Invalid scale used: " + range)
   }
   var timeAgoMs = 0
   var frames = 0
@@ -455,11 +456,10 @@ async function retrieveData(auth, range) {
   dataReq.headers = {"Authorization": bearer}
   let dataRes = await dataReq.loadJSON()
   if (dataReq.response.statusCode == 401) {
-    logError("Token rejected, clearing stored value")
     if (Keychain.contains(authKey)) {
       Keychain.remove(authKey)
     }
-    return null
+    throw new Error("Token rejected, clearing stored value")
   }
   
   
@@ -490,7 +490,6 @@ async function retrieveData(auth, range) {
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase()
 }
-
 
 async function loadAppIcon() {
   let url = "https://is2-ssl.mzstatic.com/image/thumb/Purple114/v4/05/91/27/0591277b-b3c2-1d7c-bb64-597ecfdc3eb0/SenseIcon-0-0-1x_U007emarketing-0-0-0-6-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/246x0w.png"
