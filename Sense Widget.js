@@ -155,6 +155,7 @@ if (auth == null) {
   let errorUrl = "scriptable:///open/" + encodeURI(Script.name())
   widget = await createErrorWidget(errorMsg, errorUrl)
 } else {
+  // Retrieve and plot data
   let plotData = await retrieveData(auth, range)
   widget = await createWidget(plotData)
 }
@@ -171,7 +172,6 @@ Script.complete()
 
 async function createErrorWidget(errorMessage, errorURL) {
   let widget = new ListWidget()
-  log(errorURL)
   widget.url = errorURL
   let header = widget.addText("Error!")
   widget.addSpacer(20)
@@ -181,6 +181,7 @@ async function createErrorWidget(errorMessage, errorURL) {
   widget.backgroundColor = Color.black()
   header.textColor = Color.red()
   header.font = Font.heavySystemFont(20)
+  message.textColor = Color.white()
   message.font = Font.mediumSystemFont(12)
   
   return widget
@@ -363,8 +364,9 @@ async function retrieveAuth() {
       logError("Login error: " + authData.error_reason)
       let errorAlert = new Alert()
       errorAlert.title = "Sense Login Error"
-      errorAlert.message = "Authentication with Sense API failed. \n\n Error: " + authData.error_reason
+      errorAlert.message = "Authentication with Sense API failed. \n\n API pError: " + authData.error_reason
       await errorAlert.presentAlert()
+      
       return null
     } else {
       log("Login success, storing auth data")
@@ -375,6 +377,7 @@ async function retrieveAuth() {
     let authString = Keychain.get(authKey)
     authData = JSON.parse(authString)
   }
+  
   // Get auth userID and token
   let authUserID = authData.user_id
   let authToken = authData.access_token
@@ -385,6 +388,7 @@ async function retrieveAuth() {
     "token": authToken,
     "monitorID": monitorID
   }
+  
   return authDict
 }
 
@@ -392,7 +396,7 @@ async function retrieveData(auth, range) {
   // Check scale
   if (!validRanges.includes(range)) {
     console.error("Invalid scale used: " + range)
-    return
+    return null
   }
   var timeAgoMs = 0
   var frames = 0
