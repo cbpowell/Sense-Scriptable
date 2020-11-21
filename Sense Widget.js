@@ -5,8 +5,15 @@
 // Configuration
 // Allowable range options:
 // HOUR, DAY, WEEK, MONTH, YEAR
-const range = "HOUR"
-const darkMode = false
+let range
+if (args.widgetParameter) {
+  // Do not edit this line
+  range = String(args.widgetParameter).trim()
+} else {
+  // If you wish to hardcode the range, change this value
+  range = "HOUR"
+}
+const darkMode = true
 
 
 // Debugging Options
