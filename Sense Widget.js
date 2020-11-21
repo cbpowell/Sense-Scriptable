@@ -357,7 +357,7 @@ async function retrieveAuth() {
     let loginReq = new Request(baseurl + "/authenticate")
     loginReq.method = "POST"
     loginReq.headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    loginReq.body = "email=" + encodeURL(Keychain.get(authKeyUser)) + "&password=" + encodeURL(Keychain.get(authKeyPass))
+    loginReq.body = "email=" + encodeURI(userEmail) + "&password=" + encodeURI(userPassword)
     authData = await loginReq.loadJSON()
 	if (authData.status == "error") {
       // Login error!
@@ -477,14 +477,6 @@ async function retrieveData(auth, range) {
 }
 
 // Support
-function encodeURL(url) {
-	return url.replace(/[^0-9a-zA-Z]/g, (match) => {
-		let hex = match.charCodeAt(0).toString(16)
-		if (hex.length % 2 !== 0) hex = "0" + hex
-		return hex.replace(/[\S\s]{2}/g, "%$&")
-	})
-}
-
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase()
 }
