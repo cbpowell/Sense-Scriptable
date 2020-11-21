@@ -20,6 +20,8 @@ const darkMode = true
 const debug = false
 const loginDebug = false || debug
 const graphicsDebug = false || debug
+if (loginDebug) { logWarning("Login Debugging ON") }
+if (graphicsDebug) { logWarning("Graphics Debugging ON") }
 
 // Colors
 let senseOrange
@@ -75,6 +77,7 @@ const timeIntervals = {
     HOUR: 'HOUR',
     DAY: 'DAY'
 }
+let scriptURL = "scriptable:///open/" + encodeURI(Script.name())
 
 // Line plot class
 class LineChart {
@@ -186,7 +189,7 @@ async function createErrorWidget(errorMessage, errorURL) {
   widget.url = errorURL
   let header = widget.addText("Error!")
   widget.addSpacer(20)
-  let message = widget.addText(errorMessage)
+  let message = widget.addText(errorMessage || "None")
   
   // Styling
   widget.backgroundColor = Color.black()
@@ -419,7 +422,7 @@ async function retrieveData(auth, range) {
       granularity = timeIntervals.SECOND
       break
     case "DAY":
-      // One day ago, seconds scale
+      // One day ago, minutes scale
       timeAgoMs = 60*60*24*1000
       frames = 60*24
       granularity = timeIntervals.MINUTE
