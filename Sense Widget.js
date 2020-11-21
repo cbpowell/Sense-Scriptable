@@ -1,9 +1,6 @@
 // Developed by Charles Powell, Copyright 2020
 // https://github.com/cbpowell
 
-// Developed by Charles Powell
-// https://github.com/cbpowell
-
 
 // Configuration
 // Allowable range options:
@@ -12,8 +9,10 @@ const range = "HOUR"
 const darkMode = false
 
 
-// Other Setup
+// Debugging Options
 const debug = false
+const loginDebug = false || debug
+const graphicsDebug = false || debug
 
 // Colors
 let senseOrange
@@ -193,7 +192,7 @@ async function createWidget(plotData) {
   let widget = new ListWidget()
   
   // Background
-  if(debug) {
+  if(graphicsDebug) {
     widget.backgroundColor = Color.blue()
   } else {
     widget.backgroundGradient = bgGradient
@@ -274,7 +273,7 @@ async function createWidget(plotData) {
     ctx.setStrokeColor(new Color(senseOrange.hex, 0.1))
     ctx.strokePath()
     
-    if(debug) {
+    if(graphicsDebug) {
       // Debug overlay
       let boundingRect = new Rect(0, 0, ctx.size.width, ctx.size.height)
       let boundingPath = new Path()
@@ -327,7 +326,7 @@ async function retrieveAuth() {
   
   // Try to grab a previously-stored authorization
   let authData
-  if (!Keychain.contains(authKey) || debug) {
+  if (!Keychain.contains(authKey) || loginDebug) {
     // Need to log used in and grab auth token
     if (!config.runsInApp) {
       // Need to be in app to present popup,
