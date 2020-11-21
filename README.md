@@ -16,7 +16,7 @@ Sense-Scriptable uses the unofficial Sense API to pull power usage data, and wil
 3. Copy the contents of [Sense Widget.js](https://github.com/cbpowell/Sense-Scriptable/blob/main/Sense%20Widget.js) into the new, empty script.
 4. At the top of the script, configure it to your liking - select range of data you'd like to display (`HOUR`, `DAY`, `WEEK`, `MONTH`, `YEAR`), and whether or not to use dark mode style (`true` or `false`). As an alternative to hard coding the range here, you can provide it in the iOS widget configuration instead - see Step 10!
 5. Feel free to customize the script details, like the name and icon - I use "Sense Widget" with a lightning bolt icon, naturally.
-6. Run the script from the Scriptable app at least once, by tapping the "play" button. You will be requested to provide your Sense login info - this is only required intially (or if you change your password, or the authorization tokens rotate). Please be sure to ([see note on security below](https://github.com/cbpowell/Sense-Scriptable#notes) regarding the use of your login info!
+6. Run the script from the Scriptable app at least once, by tapping the "play" button. You will be requested to provide your Sense login info - this is only required intially (or if you change your password, or the authorization tokens rotate). **Please** be sure to [see the note on security below](https://github.com/cbpowell/Sense-Scriptable#notes), regarding the use of your login info!
 
    <img src="../assets/login_popup.jpeg" width="350">
 7. Tap Done to save the script.
