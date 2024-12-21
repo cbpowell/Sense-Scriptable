@@ -1,4 +1,4 @@
-// Developed by Charles Powell, Copyright 2020
+// Developed by Charles Powell, Copyright 2024
 // https://github.com/cbpowell
 
 
@@ -100,12 +100,14 @@ class LineChart {
     } else {
       maxValue = this.ymax
     }
+    
     let minValue
     if(isNaN(this.ymax)) {
       minValue = Math.min(...this.values)
     } else {
       minValue = this.ymin
     }
+    
     let difference = maxValue - minValue
     let count = this.values.length
     let step = (this.ctx.size.width - this.xInset) / (count - 1)
@@ -114,9 +116,30 @@ class LineChart {
         let y = this.ctx.size.height * (1 - minCtxHeight) - (current - minValue) / difference * this.ctx.size.height * maxCtxHeight
         return new Point(x, y)
     })
-    return this._getSmoothPath(points)
+    return this._getLinePath(points)
   }
-      
+  
+  _getLinePath(points) {
+    let path = new Path()
+    let openPath = new Path()
+    
+    path.move(new Point(0, this.ctx.size.height))
+    openPath.move(new Point(0, this.ctx.size.height))
+    
+    path.addLine(points[0])
+    openPath.addLine(points[0])
+    
+    for(let i = 0; i < points.length-1; i++) {
+      path.addLine(points[i])
+      openPath.addLine(points[i])
+    }
+    
+    path.addLine(new Point(this.ctx.size.width - this.xInset, this.ctx.size.height))
+    // Do not add 0 value point on openPath for Sense plot, or close openPath (obviously)
+    path.closeSubpath()
+    return [path, openPath]
+  }
+  
   _getSmoothPath(points) {
     let path = new Path()
     let openPath = new Path()
@@ -172,7 +195,10 @@ try {
   }
 } catch(err) {
   widget = await createErrorWidget("Unable to authenticate with Sense: " + err.message, scriptURL)
+  
 }
+
+// widget = await createErrorWidget(args.widgetParameter, "")
 
 // Present widget
 if (config.runsInWidget) {
@@ -370,8 +396,12 @@ async function retrieveAuth() {
     loginReq.method = "POST"
     loginReq.headers = {"Content-Type": "application/x-www-form-urlencoded"}
     loginReq.body = "email=" + encodeURI(userEmail) + "&password=" + encodeURI(userPassword)
+    
+    // Await response
     authData = await loginReq.loadJSON()
-	if (authData.status == "error") {
+    
+    // Check if MFA needed
+    if (authData.status == "error") {
       // Login error!
       logError("Login error: " + authData.error_reason)
       let errorAlert = new Alert()
@@ -380,10 +410,52 @@ async function retrieveAuth() {
       await errorAlert.presentAlert()
       
       return null
-    } else {
-      log("Login success, storing auth data")
-      Keychain.set(authKey, JSON.stringify(authData))
     }
+    
+    if (authData.status === "mfa_required") {
+      // Store MFA token
+      let mfa_token = authData.mfa_token
+      // Prompt user for totp code
+      // Present login prompt
+      let loginAlert = new Alert()
+      loginAlert.title = "Sense Multi-factor Authentication"
+      loginAlert.message = "Please enter the current one-time code for your Sense account:"
+      loginAlert.addTextField("MFA Code")
+      loginAlert.addCancelAction("Cancel")
+      loginAlert.addAction("Submit")
+      let loginResponse = await loginAlert.presentAlert()
+      if (loginResponse == -1) {
+        // User cancelled login
+        throw new Error("User cancelled login")
+      }
+      let totpCode = loginAlert.textFieldValue(0)
+      // Login and generate auth data
+      let mfaReq = new Request(baseurl + "/authenticate/mfa")
+      mfaReq.method = "POST"
+      mfaReq.headers = {"Content-Type": "application/x-www-form-urlencoded"}
+      // Generate datetime string
+      let currDate = new Date()
+      
+      mfaReq.body = "totp=" + encodeURI(totpCode) + "&mfa_token=" + encodeURI(mfa_token) + "&client_time=" + encodeURI(currDate.toISOString())
+      
+      // Await response
+      authData = await mfaReq.loadJSON()
+      
+      if (authData.status == "error") {
+        // Login error!
+        logError("Login error: " + authData.error_reason)
+        let errorAlert = new Alert()
+        errorAlert.title = "Sense Login Error"
+        errorAlert.message = "MFA Authentication with Sense API failed. \n\n API pError: " + authData.error_reason
+        await errorAlert.presentAlert()
+      
+        return null
+      }
+      // Otherwise, looks good
+    }
+    
+    log("Login success, storing auth data")
+    Keychain.set(authKey, JSON.stringify(authData))
   } else {
     // get from Keychain
     let authString = Keychain.get(authKey)
@@ -474,7 +546,7 @@ async function retrieveData(auth, range) {
     let lpt = val[0]
     let hpt = val[1]
     if (lpt > 1.0) {
-      let pt = hpt //(lpt + hpt)/2
+      let pt = (lpt + hpt)/2
       return pt
     }
   }).filter((val) => { return val != null })
